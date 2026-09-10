@@ -20,6 +20,10 @@ The platform provides a role-based, state-aware workflow for stakeholders, Legal
 
 The repository includes mock adapters for external services such as Aadhaar, DigiLocker, Udyam/GST, OCR, instrument recognition, and payments so that evaluators can run the complete demonstration locally without production credentials.
 
+## Demo
+
+[Watch the project demo](https://drive.google.com/file/d/1umt_8KZh0VnDytum2d9XiamvXZHziYz-/view?usp=sharing)
+
 ## 4. Key Features
 
 - Stakeholder registration and role-based access
