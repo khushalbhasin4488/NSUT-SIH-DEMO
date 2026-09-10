@@ -20,10 +20,6 @@ The platform provides a role-based, state-aware workflow for stakeholders, Legal
 
 The repository includes mock adapters for external services such as Aadhaar, DigiLocker, Udyam/GST, OCR, instrument recognition, and payments so that evaluators can run the complete demonstration locally without production credentials.
 
-## Demo
-
-[Watch the project demo](https://drive.google.com/file/d/1umt_8KZh0VnDytum2d9XiamvXZHziYz-/view?usp=sharing)
-
 ## 4. Key Features
 
 - Stakeholder registration and role-based access
@@ -70,54 +66,96 @@ The API is served under `/api`. The health endpoint is `/api/health`. External i
 ## 7. Repository Structure
 
 ```text
-sih/
+sih_submission/
 ├── README.md
-├── package.json
-├── docker-compose.yml
-├── apps/
-│   ├── api/
-│   │   ├── src/                 # NestJS controllers, services, guards, providers
-│   │   ├── prisma/              # Schema, migrations, and seed data
-│   │   └── test/                # API and domain tests
-│   ├── web/
-│   │   └── app/                 # Next.js pages and UI components
-│   └── mobile/                  # Flutter offline-sync foundation
-├── infra/
-│   └── keycloak/                # Imported Keycloak realm and demo users
-└── plan.md                      # Unified technical plan, roadmap, and implementation status
+├── LICENSE
+├── assets/
+│   └── screenshots/             # Project screenshots and visual assets
+├── docs/
+│   └── architecture.md          # Architecture documentation
+├── src/
+│   ├── README.md
+│   ├── docker-compose.yml       # Complete local service stack
+│   ├── apps/
+│   │   ├── api/
+│   │   │   ├── src/             # NestJS controllers, services, guards, providers
+│   │   │   ├── prisma/           # Schema, migrations, and seed data
+│   │   │   └── test/             # API and domain tests
+│   │   ├── web/
+│   │   │   └── app/              # Next.js pages and UI components
+│   │   └── mobile/               # Flutter offline-sync foundation
+│   └── infra/
+│       └── keycloak/             # Imported Keycloak realm and demo users
+└── submission/
+    ├── Demo.md                   # Demo recording link
+    └── KHUSHAL_SIH2026_Presentation.pptx
 ```
 
 ### What goes where?
 
 | Item | Location |
 | --- | --- |
-| Web source code | `apps/web/` |
-| API source code | `apps/api/src/` |
-| Database schema and migrations | `apps/api/prisma/` |
-| API tests | `apps/api/test/` |
-| Mobile field-app foundation | `apps/mobile/` |
-| Infrastructure configuration | `docker-compose.yml`, `infra/` |
-| Technical documentation, roadmap, and implementation status | `plan.md` |
+| Web source code | `src/apps/web/` |
+| API source code | `src/apps/api/src/` |
+| Database schema and migrations | `src/apps/api/prisma/` |
+| API tests | `src/apps/api/test/` |
+| Mobile field-app foundation | `src/apps/mobile/` |
+| Infrastructure configuration | `src/docker-compose.yml`, `src/infra/` |
+| Architecture documentation | `docs/architecture.md` |
+| Demo recording | `submission/Demo.md` |
+| Presentation | `submission/KHUSHAL_SIH2026_Presentation.pptx` |
 
-## 8. Evaluator Prerequisites
+## 8. Final Presentation
 
-Install the following before starting:
+The final SIH presentation is available at [`submission/KHUSHAL_SIH2026_Presentation.pptx`](submission/KHUSHAL_SIH2026_Presentation.pptx).
 
-- Git
-- Docker Desktop with Docker Compose v2
-- Node.js 22 or a compatible current Node.js release
-- npm
+## 9. Demo Video
 
-The default Docker Compose setup does not require a separate PostgreSQL, Redis, Kafka, MinIO, or Keycloak installation.
+[Watch the project demo](https://drive.google.com/file/d/1umt_8KZh0VnDytum2d9XiamvXZHziYz-/view?usp=drive_link)
 
-## 9. Installation and Setup
+The share link is also documented in [`submission/Demo.md`](submission/Demo.md).
+
+## 10. Screenshots / Prototype Views
+
+The project screenshots are stored in [`assets/screenshots/`](assets/screenshots/).
+
+### Home page
+
+![Maanak home page](assets/screenshots/01-home.jpeg)
+
+### Instrument registry
+
+![Instrument registry](assets/screenshots/02-instruments-registery.png)
+
+### Applications dashboard
+
+![Applications dashboard](assets/screenshots/03-applications.png)
+
+### Reports
+
+![Reports dashboard](assets/screenshots/04-report.png)
+
+### Digital certificate
+
+![Digital certificate](assets/screenshots/05-certificate.png)
+
+### Application registration
+
+![Application registration form](assets/screenshots/06-application-registration.jpeg)
+
+### Application dashboard
+
+![Application dashboard](assets/screenshots/07-app-dashboard.jpeg)
+
+## 11. Installation
+
+Install Git and Docker Desktop with Docker Compose v2. The default Compose setup does not require separate PostgreSQL, Redis, Kafka, MinIO, or Keycloak installations.
 
 Clone the repository and install the workspace dependencies:
 
 ```bash
 git clone <YOUR_REPOSITORY_URL>
-cd sih
-npm install
+cd <YOUR_PROJECT_FOLDER>/src
 ```
 
 Start the complete local stack:
@@ -126,15 +164,14 @@ Start the complete local stack:
 docker compose up -d --build
 ```
 
-Apply the database migrations and load the demonstration records:
+After the containers are healthy, apply the database migrations and load the demonstration records:
 
 ```bash
-npm run db:generate
-npm run db:migrate
-npm run db:seed
+docker compose exec api npx prisma migrate deploy --schema apps/api/prisma/schema.prisma
+docker compose exec api npx tsx apps/api/prisma/seed.ts
 ```
 
-The API reads local development settings from `apps/api/.env`. If that file is not present, copy the provided example first:
+If you run the API locally instead of through Docker, copy the provided example first:
 
 ```bash
 cp apps/api/.env.example apps/api/.env
@@ -146,7 +183,7 @@ For a clean evaluator environment, run the database commands after the PostgreSQ
 docker compose ps
 ```
 
-## 10. Run and Access the Project
+## 12. Run
 
 When the stack is running, use these URLs:
 
@@ -175,34 +212,26 @@ The Docker Compose Keycloak admin account is `admin` / `admin`. These credential
 
 The recommended recording account is `business@example.com`. Its seeded profile is already verified and includes a business name, phone number, GSTIN, KYC document, instruments, applications, payment history, and certificate records. You can use the **New application** flow to submit another application live during the demo.
 
-## 11. Development Commands
+### Development commands
 
 ```bash
-# Build all workspaces
-npm run build
+# Build the API
+npm run build --prefix apps/api
 
 # Run API tests
-npm test
+npm test --prefix apps/api
 
 # Run the API locally outside Docker
-npm run dev
+npm run dev --prefix apps/api
 
 # Run the web app locally outside Docker
-npm run dev -w apps/web
+npm run dev --prefix apps/web
 
 # Stop containers while preserving database/object-storage volumes
 docker compose down
 ```
 
 If the API or web app is run locally instead of through Compose, keep the supporting services running with Docker Compose and use the host-based values in `apps/api/.env.example`.
-
-## 12. Suggested Evaluation Flow
-
-1. Open the web app and sign in as `business@example.com`.
-2. Review the seeded instruments, applications, payment records, and certificate history.
-3. Open the officer or GATC views to inspect scheduling and verification workflows.
-4. Open the certificate/public verification flow and verify a seeded certificate.
-5. Check the API health endpoint and the role-specific dashboards.
 
 ## 13. Future Scope
 
