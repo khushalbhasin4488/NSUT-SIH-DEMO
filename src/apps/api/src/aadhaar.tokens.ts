@@ -1,0 +1,1 @@
+export const AADHAAR_PROVIDER = 'AADHAAR_PROVIDER';

@@ -1,0 +1,4 @@
+ALTER TABLE "stakeholders" ADD COLUMN "district_code" VARCHAR(12), ADD COLUMN "address" TEXT, ADD COLUMN "email_verified" BOOLEAN NOT NULL DEFAULT false, ADD COLUMN "phone_verified" BOOLEAN NOT NULL DEFAULT false;
+CREATE TABLE "stakeholder_documents" ("id" UUID NOT NULL DEFAULT gen_random_uuid(),"stakeholder_id" UUID NOT NULL,"document_type" TEXT NOT NULL,"file_name" TEXT NOT NULL,"object_key" TEXT NOT NULL,"status" TEXT NOT NULL DEFAULT 'PENDING',"uploaded_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "stakeholder_documents_pkey" PRIMARY KEY ("id"));
+CREATE INDEX "stakeholder_documents_stakeholder_id_status_idx" ON "stakeholder_documents"("stakeholder_id","status");
+ALTER TABLE "stakeholder_documents" ADD CONSTRAINT "stakeholder_documents_stakeholder_id_fkey" FOREIGN KEY ("stakeholder_id") REFERENCES "stakeholders"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

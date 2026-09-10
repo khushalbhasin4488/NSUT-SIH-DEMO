@@ -1,0 +1,353 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+enum StakeholderRole {
+  CONSUMER
+  BUSINESS
+  LMO
+  GATC
+  STATE_ADMIN
+  CENTRAL_ADMIN
+}
+enum KycStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  SCHEDULED
+  VERIFICATION_PASSED
+  VERIFICATION_FAILED
+  CERTIFICATE_ISSUED
+  REJECTED
+}
+enum VerificationResult {
+  PASS
+  FAIL
+}
+enum CertificateStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+enum FieldTaskStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  SYNCED
+}
+enum SyncOperationStatus {
+  PENDING
+  APPLIED
+  CONFLICT
+}
+enum AlertChannel {
+  SMS
+  WHATSAPP
+  EMAIL
+  PUSH
+}
+enum ExternalSystem {
+  DIGILOCKER
+  UMANG
+  LEGACY_STATE
+}
+
+model Stakeholder {
+  id String @id @default(uuid()) @db.Uuid
+  role StakeholderRole
+  stateCode String @map("state_code") @db.VarChar(5)
+  districtCode String? @map("district_code") @db.VarChar(12)
+  name String
+  address String?
+  email String?
+  phone String?
+  gstin String?
+  kycStatus KycStatus @default(PENDING) @map("kyc_status")
+  emailVerified Boolean @default(false) @map("email_verified")
+  phoneVerified Boolean @default(false) @map("phone_verified")
+  notificationPreferences Json? @map("notification_preferences")
+  createdAt DateTime @default(now()) @map("created_at")
+  instruments Instrument[]
+  applications Application[]
+  documents StakeholderDocument[]
+  @@index([stateCode, role])
+  @@map("stakeholders")
+}
+
+model Instrument {
+  id String @id @default(uuid()) @db.Uuid
+  ownerId String @map("owner_id") @db.Uuid
+  category String
+  model String?
+  serialNo String @map("serial_no")
+  specs Json?
+  owner Stakeholder @relation(fields: [ownerId], references: [id])
+  applications Application[]
+  @@unique([ownerId, serialNo])
+  @@map("instruments")
+}
+
+model StakeholderDocument {
+  id String @id @default(uuid()) @db.Uuid
+  stakeholderId String @map("stakeholder_id") @db.Uuid
+  documentType String @map("document_type")
+  fileName String @map("file_name")
+  objectKey String @map("object_key")
+  status String @default("PENDING")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+  stakeholder Stakeholder @relation(fields: [stakeholderId], references: [id])
+  @@index([stakeholderId, status])
+  @@map("stakeholder_documents")
+}
+
+model Application {
+  id String @id @default(uuid()) @db.Uuid
+  instrumentId String @map("instrument_id") @db.Uuid
+  applicantId String @map("applicant_id") @db.Uuid
+  status ApplicationStatus @default(DRAFT)
+  feeAmount Decimal? @map("fee_amount") @db.Decimal(12,2)
+  assignedOfficerId String? @map("assigned_officer_id") @db.Uuid
+  scheduledAt DateTime? @map("scheduled_at")
+  submittedAt DateTime? @map("submitted_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  instrument Instrument @relation(fields: [instrumentId], references: [id])
+  applicant Stakeholder @relation(fields: [applicantId], references: [id])
+  verifications VerificationRecord[]
+  payments Payment[]
+  fieldTasks FieldTask[]
+  @@index([status, scheduledAt])
+  @@map("applications")
+}
+
+model VerificationRecord {
+  id String @id @default(uuid()) @db.Uuid
+  applicationId String @map("application_id") @db.Uuid
+  officerId String @map("officer_id") @db.Uuid
+  observations Json
+  result VerificationResult
+  photos String[]
+  signatureObjectKey String? @map("signature_object_key")
+  signedAt DateTime? @map("signed_at")
+  verifiedAt DateTime @default(now()) @map("verified_at")
+  application Application @relation(fields: [applicationId], references: [id])
+  certificate Certificate?
+  @@map("verification_records")
+}
+
+model Certificate {
+  id String @id @default(uuid()) @db.Uuid
+  verificationId String @unique @map("verification_id") @db.Uuid
+  certNo String @unique @map("cert_no")
+  qrHash String @map("qr_hash")
+  validFrom DateTime @map("valid_from")
+  validUntil DateTime @map("valid_until")
+  digitalSignature String? @map("digital_signature")
+  status CertificateStatus @default(ACTIVE)
+  verification VerificationRecord @relation(fields: [verificationId], references: [id])
+  @@index([validUntil, status])
+  @@map("certificates")
+}
+
+model Payment {
+  id String @id @default(uuid()) @db.Uuid
+  applicationId String @map("application_id") @db.Uuid
+  providerReference String? @map("provider_reference")
+  idempotencyKey String @unique @map("idempotency_key")
+  receiptNo String? @unique @map("receipt_no")
+  amount Decimal @db.Decimal(12,2)
+  status String @default("PENDING")
+  createdAt DateTime @default(now()) @map("created_at")
+  application Application @relation(fields: [applicationId], references: [id])
+  @@map("payments")
+}
+
+model FeeConfig {
+  id String @id @default(uuid()) @db.Uuid
+  category String
+  serviceType String @default("VERIFICATION") @map("service_type")
+  amount Decimal @db.Decimal(12,2)
+  createdAt DateTime @default(now()) @map("created_at")
+  @@unique([category, serviceType])
+  @@map("fee_configs")
+}
+
+model AuditLog {
+  id String @id @default(uuid()) @db.Uuid
+  actorId String? @map("actor_id") @db.Uuid
+  action String
+  entityType String @map("entity_type")
+  entityId String @map("entity_id")
+  metadata Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([entityType, entityId, createdAt])
+  @@map("audit_logs")
+}
+
+model FieldTask {
+  id String @id @default(uuid()) @db.Uuid
+  applicationId String @map("application_id") @db.Uuid
+  officerId String @map("officer_id") @db.Uuid
+  scheduledAt DateTime @map("scheduled_at")
+  latitude Decimal? @db.Decimal(10,7)
+  longitude Decimal? @db.Decimal(10,7)
+  status FieldTaskStatus @default(ASSIGNED)
+  version Int @default(1)
+  updatedAt DateTime @updatedAt @map("updated_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  application Application @relation(fields: [applicationId], references: [id])
+  syncOperations SyncOperation[]
+  @@index([officerId, scheduledAt, status])
+  @@map("field_tasks")
+}
+
+model SyncOperation {
+  id String @id @default(uuid()) @db.Uuid
+  operationId String @unique @map("operation_id")
+  taskId String @map("task_id") @db.Uuid
+  deviceUpdatedAt DateTime @map("device_updated_at")
+  payload Json
+  status SyncOperationStatus @default(PENDING)
+  conflictNote String? @map("conflict_note")
+  createdAt DateTime @default(now()) @map("created_at")
+  task FieldTask @relation(fields: [taskId], references: [id])
+  @@index([taskId, createdAt])
+  @@map("sync_operations")
+}
+
+model FraudScore {
+  id String @id @default(uuid()) @db.Uuid
+  subjectType String @map("subject_type")
+  subjectId String @map("subject_id")
+  score Int
+  riskLevel String @map("risk_level")
+  reasons Json
+  modelVersion String @default("phase2-rules-v1") @map("model_version")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([subjectType, subjectId, createdAt])
+  @@map("fraud_scores")
+}
+
+model Alert {
+  id String @id @default(uuid()) @db.Uuid
+  stakeholderId String? @map("stakeholder_id") @db.Uuid
+  applicationId String? @map("application_id") @db.Uuid
+  channel AlertChannel
+  template String
+  recipient String
+  payload Json
+  status String @default("QUEUED")
+  attempts Int @default(0)
+  maxAttempts Int @default(3) @map("max_attempts")
+  failureReason String? @map("failure_reason")
+  providerReference String? @map("provider_reference")
+  deliveredAt DateTime? @map("delivered_at")
+  sentAt DateTime? @map("sent_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([status, createdAt])
+  @@index([providerReference])
+  @@map("alerts")
+}
+
+model ComplianceDocument {
+  id String @id @default(uuid()) @db.Uuid
+  title String
+  sectionRef String @map("section_ref")
+  paragraph String
+  language String @default("en")
+  active Boolean @default(true)
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([active, language])
+  @@map("compliance_documents")
+}
+
+model ComplianceQuery {
+  id String @id @default(uuid()) @db.Uuid
+  question String
+  answer String
+  citations Json
+  confidence Decimal @db.Decimal(5,4)
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([createdAt])
+  @@map("compliance_queries")
+}
+
+model LedgerEntry {
+  id String @id @default(uuid()) @db.Uuid
+  entityType String @map("entity_type")
+  entityId String @map("entity_id")
+  payloadHash String @map("payload_hash")
+  previousHash String? @map("previous_hash")
+  entryHash String @unique @map("entry_hash")
+  anchoredAt DateTime @default(now()) @map("anchored_at")
+  @@index([entityType, entityId, anchoredAt])
+  @@map("ledger_entries")
+}
+
+model ExternalSync {
+  id String @id @default(uuid()) @db.Uuid
+  system ExternalSystem
+  entityType String @map("entity_type")
+  entityId String @map("entity_id")
+  idempotencyKey String @unique @map("idempotency_key")
+  status String @default("QUEUED")
+  externalReference String? @map("external_reference")
+  requestPayload Json @map("request_payload")
+  responsePayload Json? @map("response_payload")
+  lastAttemptAt DateTime? @map("last_attempt_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([system, status, createdAt])
+  @@map("external_syncs")
+}
+
+model LegacyImport {
+  id String @id @default(uuid()) @db.Uuid
+  sourceSystem String @map("source_system")
+  sourceRecordId String @map("source_record_id")
+  targetEntityType String @map("target_entity_type")
+  targetEntityId String? @map("target_entity_id")
+  payload Json
+  validationErrors Json? @map("validation_errors")
+  status String @default("IMPORTED")
+  importedAt DateTime @default(now()) @map("imported_at")
+  @@unique([sourceSystem, sourceRecordId])
+  @@map("legacy_imports")
+}
+
+model LegacyStateMapping {
+  id String @id @default(uuid()) @db.Uuid
+  sourceSystem String @map("source_system")
+  targetEntityType String @map("target_entity_type")
+  fieldMap Json @map("field_map")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@unique([sourceSystem, targetEntityType])
+  @@map("legacy_state_mappings")
+}
+
+model AiOutput {
+  id String @id @default(uuid()) @db.Uuid
+  kind String
+  stakeholderId String? @map("stakeholder_id") @db.Uuid
+  instrumentId String? @map("instrument_id") @db.Uuid
+  documentType String? @map("document_type")
+  inputObjectKey String @map("input_object_key")
+  result Json
+  confidence Decimal @db.Decimal(5,4)
+  lowConfidence Boolean @default(false) @map("low_confidence")
+  status String @default("PENDING_REVIEW")
+  correctedResult Json? @map("corrected_result")
+  reviewedBy String? @map("reviewed_by") @db.Uuid
+  reviewNote String? @map("review_note")
+  reviewedAt DateTime? @map("reviewed_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  @@index([kind, status, createdAt])
+  @@map("ai_outputs")
+}

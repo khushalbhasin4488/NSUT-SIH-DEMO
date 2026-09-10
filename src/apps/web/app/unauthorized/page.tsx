@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export default function Unauthorized(){return <main className="public-page"><Link className="public-brand" href="/"><span className="brand-mark">M</span><b>maanak</b></Link><div className="public-card access-card"><div className="access-code">401</div><span className="eyebrow">SIGN-IN REQUIRED</span><h1>Sign in to continue</h1><p>This workspace is available to registered stakeholders and authorised department users.</p><Link className="button full-button" href="/login">Go to sign in →</Link></div></main>}

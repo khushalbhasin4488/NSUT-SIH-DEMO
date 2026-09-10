@@ -1,0 +1,14 @@
+CREATE TYPE "FieldTaskStatus" AS ENUM ('ASSIGNED','IN_PROGRESS','COMPLETED','SYNCED');
+CREATE TYPE "SyncOperationStatus" AS ENUM ('PENDING','APPLIED','CONFLICT');
+CREATE TYPE "AlertChannel" AS ENUM ('SMS','WHATSAPP','EMAIL','PUSH');
+CREATE TABLE "field_tasks" ("id" UUID NOT NULL DEFAULT gen_random_uuid(),"application_id" UUID NOT NULL,"officer_id" UUID NOT NULL,"scheduled_at" TIMESTAMPTZ NOT NULL,"latitude" DECIMAL(10,7),"longitude" DECIMAL(10,7),"status" "FieldTaskStatus" NOT NULL DEFAULT 'ASSIGNED',"version" INTEGER NOT NULL DEFAULT 1,"updated_at" TIMESTAMPTZ NOT NULL,"created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "field_tasks_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "sync_operations" ("id" UUID NOT NULL DEFAULT gen_random_uuid(),"operation_id" TEXT NOT NULL,"task_id" UUID NOT NULL,"device_updated_at" TIMESTAMPTZ NOT NULL,"payload" JSONB NOT NULL,"status" "SyncOperationStatus" NOT NULL DEFAULT 'PENDING',"conflict_note" TEXT,"created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "sync_operations_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "fraud_scores" ("id" UUID NOT NULL DEFAULT gen_random_uuid(),"subject_type" TEXT NOT NULL,"subject_id" TEXT NOT NULL,"score" INTEGER NOT NULL,"risk_level" TEXT NOT NULL,"reasons" JSONB NOT NULL,"model_version" TEXT NOT NULL DEFAULT 'phase2-rules-v1',"created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "fraud_scores_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "alerts" ("id" UUID NOT NULL DEFAULT gen_random_uuid(),"stakeholder_id" UUID,"application_id" UUID,"channel" "AlertChannel" NOT NULL,"template" TEXT NOT NULL,"recipient" TEXT NOT NULL,"payload" JSONB NOT NULL,"status" TEXT NOT NULL DEFAULT 'QUEUED',"sent_at" TIMESTAMPTZ,"created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "alerts_pkey" PRIMARY KEY ("id"));
+CREATE UNIQUE INDEX "sync_operations_operation_id_key" ON "sync_operations"("operation_id");
+CREATE INDEX "field_tasks_officer_id_scheduled_at_status_idx" ON "field_tasks"("officer_id","scheduled_at","status");
+CREATE INDEX "sync_operations_task_id_created_at_idx" ON "sync_operations"("task_id","created_at");
+CREATE INDEX "fraud_scores_subject_type_subject_id_created_at_idx" ON "fraud_scores"("subject_type","subject_id","created_at");
+CREATE INDEX "alerts_status_created_at_idx" ON "alerts"("status","created_at");
+ALTER TABLE "field_tasks" ADD CONSTRAINT "field_tasks_application_id_fkey" FOREIGN KEY ("application_id") REFERENCES "applications"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "sync_operations" ADD CONSTRAINT "sync_operations_task_id_fkey" FOREIGN KEY ("task_id") REFERENCES "field_tasks"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

@@ -1,0 +1,2 @@
+import Link from 'next/link';
+export default function Forbidden(){return <main className="public-page"><Link className="public-brand" href="/"><span className="brand-mark">M</span><b>maanak</b></Link><div className="public-card access-card"><div className="access-code red-text">403</div><span className="eyebrow">ACCESS RESTRICTED</span><h1>You do not have access</h1><p>Your current role cannot open this workspace. Contact your state administrator if you believe this is an error.</p><Link className="ghost-button full-button" href="/">Return to overview</Link></div></main>}

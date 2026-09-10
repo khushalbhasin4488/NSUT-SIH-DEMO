@@ -1,0 +1,1 @@
+export const GST_UDYAM_PROVIDER = 'GST_UDYAM_PROVIDER';

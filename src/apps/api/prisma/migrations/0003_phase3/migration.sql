@@ -1,0 +1,13 @@
+CREATE TYPE "ExternalSystem" AS ENUM ('DIGILOCKER','UMANG','LEGACY_STATE');
+CREATE TABLE "compliance_documents" ("id" UUID NOT NULL DEFAULT gen_random_uuid(),"title" TEXT NOT NULL,"section_ref" TEXT NOT NULL,"paragraph" TEXT NOT NULL,"language" TEXT NOT NULL DEFAULT 'en',"active" BOOLEAN NOT NULL DEFAULT true,"created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "compliance_documents_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "compliance_queries" ("id" UUID NOT NULL DEFAULT gen_random_uuid(),"question" TEXT NOT NULL,"answer" TEXT NOT NULL,"citations" JSONB NOT NULL,"confidence" DECIMAL(5,4) NOT NULL,"created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "compliance_queries_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "ledger_entries" ("id" UUID NOT NULL DEFAULT gen_random_uuid(),"entity_type" TEXT NOT NULL,"entity_id" TEXT NOT NULL,"payload_hash" TEXT NOT NULL,"previous_hash" TEXT,"entry_hash" TEXT NOT NULL,"anchored_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "ledger_entries_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "external_syncs" ("id" UUID NOT NULL DEFAULT gen_random_uuid(),"system" "ExternalSystem" NOT NULL,"entity_type" TEXT NOT NULL,"entity_id" TEXT NOT NULL,"idempotency_key" TEXT NOT NULL,"status" TEXT NOT NULL DEFAULT 'QUEUED',"external_reference" TEXT,"request_payload" JSONB NOT NULL,"response_payload" JSONB,"last_attempt_at" TIMESTAMPTZ,"created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "external_syncs_pkey" PRIMARY KEY ("id"));
+CREATE TABLE "legacy_imports" ("id" UUID NOT NULL DEFAULT gen_random_uuid(),"source_system" TEXT NOT NULL,"source_record_id" TEXT NOT NULL,"target_entity_type" TEXT NOT NULL,"target_entity_id" TEXT,"payload" JSONB NOT NULL,"status" TEXT NOT NULL DEFAULT 'IMPORTED',"imported_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,CONSTRAINT "legacy_imports_pkey" PRIMARY KEY ("id"));
+CREATE INDEX "compliance_documents_active_language_idx" ON "compliance_documents"("active","language");
+CREATE INDEX "compliance_queries_created_at_idx" ON "compliance_queries"("created_at");
+CREATE UNIQUE INDEX "ledger_entries_entry_hash_key" ON "ledger_entries"("entry_hash");
+CREATE INDEX "ledger_entries_entity_type_entity_id_anchored_at_idx" ON "ledger_entries"("entity_type","entity_id","anchored_at");
+CREATE UNIQUE INDEX "external_syncs_idempotency_key_key" ON "external_syncs"("idempotency_key");
+CREATE INDEX "external_syncs_system_status_created_at_idx" ON "external_syncs"("system","status","created_at");
+CREATE UNIQUE INDEX "legacy_imports_source_system_source_record_id_key" ON "legacy_imports"("source_system","source_record_id");
