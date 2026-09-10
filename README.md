@@ -4,7 +4,7 @@ This repository contains a demonstrable Legal Metrology platform for registering
 
 ## 1. Project Information
 
-- **Project Title:** Development of an Online Verification System for Weighing and Measuring Instruments 
+- **Project Title:** Maanak 
 - **PS ID:** SIH26036 
 - **PS Title:** Development of an Online Verification System for Weighing and Measuring Instruments
 - **Category:** Software
